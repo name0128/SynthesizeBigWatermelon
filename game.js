@@ -264,8 +264,9 @@ function update() {
         for (let fruit of fruits) {
             if (checkCollision(currentFruit, fruit)) {
                 if (currentFruit.type === fruit.type && currentFruit.type < FRUIT_TYPES.length - 1) {
-                    // 合成
-                    mergeFruits(currentFruit, fruit);
+                    // 合成（修复：把新水果放回场上，否则两个水果会凭空消失）
+                    const newFruit = mergeFruits(currentFruit, fruit);
+                    fruits.push(newFruit);
                     currentFruit = null;
                     createCurrentFruit();
                     break;
@@ -442,7 +443,7 @@ function draw() {
 
 // 绘制水果（emoji 版）
 function drawFruit(fruit) {
-    ctx.font = (fruit.radius * 1.6) + 'px serif';
+    ctx.font = (fruit.radius * 1.8) + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(FRUIT_TYPES[fruit.type].emoji, fruit.x, fruit.y + fruit.radius * 0.08);
