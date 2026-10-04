@@ -31,6 +31,7 @@ let nextFruitType = 0;
 let score = 0;
 let highScore = 0;
 let gameOver = false;
+let overLineFrames = 0;   // 水果持续越过危险线的帧数（持续 1.5 秒才判负，防误判）
 let dropX = 0;
 let canvasWidth, canvasHeight;
 
@@ -216,6 +217,7 @@ function restartGame() {
     fruits = [];
     score = 0;
     gameOver = false;
+    overLineFrames = 0;
     document.getElementById('score').textContent = score;
     generateNextFruit();
     createCurrentFruit();
@@ -304,12 +306,6 @@ function update() {
             fruit.x = canvasWidth - fruit.radius;
             fruit.vx *= -BOUNCE;
         }
-
-        // 检查游戏是否结束
-        if (fruit.y - fruit.radius < 100 && Math.abs(fruit.vy) < 0.5 && Math.abs(fruit.vx) < 0.5) {
-            gameOver = true;
-            alert('游戏结束！最终得分: ' + score);
-        }
     }
 
     // 水果之间的碰撞
@@ -344,6 +340,25 @@ function update() {
                 }
             }
         }
+    }
+
+    // 游戏结束判定（防误判版）：水果顶端越过危险线且"持续静止"1.5 秒（90帧）才判负
+    // 修复：水果被弹起掠过危险线的瞬间不再立即结束游戏
+    let danger = false;
+    for (let fruit of fruits) {
+        if (fruit.y - fruit.radius < 100 && Math.abs(fruit.vy) < 1 && Math.abs(fruit.vx) < 1) {
+            danger = true;
+            break;
+        }
+    }
+    if (danger) {
+        overLineFrames++;
+        if (overLineFrames > 90) {
+            gameOver = true;
+            alert('游戏结束！最终得分: ' + score);
+        }
+    } else {
+        overLineFrames = 0;
     }
 }
 
