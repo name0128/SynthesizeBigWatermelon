@@ -264,8 +264,10 @@ function update() {
         for (let fruit of fruits) {
             if (checkCollision(currentFruit, fruit)) {
                 if (currentFruit.type === fruit.type && currentFruit.type < FRUIT_TYPES.length - 1) {
-                    // 合成（修复：把新水果放回场上，否则两个水果会凭空消失）
+                    // 合成：生成高一级水果；移除场上参与合成的那个；掉落中的自己不再保留
                     const newFruit = mergeFruits(currentFruit, fruit);
+                    const idx = fruits.indexOf(fruit);
+                    if (idx > -1) fruits.splice(idx, 1);
                     fruits.push(newFruit);
                     currentFruit = null;
                     createCurrentFruit();
