@@ -313,6 +313,20 @@ function update() {
     // 水果之间的碰撞
     for (let i = 0; i < fruits.length; i++) {
         for (let j = i + 1; j < fruits.length; j++) {
+            // 同类水果近距离"磁吸"：互相吸引直到接触并合成（修复相邻相同水果不合成的问题）
+            const mdx = fruits[j].x - fruits[i].x;
+            const mdy = fruits[j].y - fruits[i].y;
+            const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+            const msum = fruits[i].radius + fruits[j].radius;
+            if (fruits[i].type === fruits[j].type &&
+                fruits[i].type < FRUIT_TYPES.length - 1 &&
+                mdist < msum * 1.5 && mdist > 0.01) {
+                const pull = 0.12;
+                fruits[i].vx += (mdx / mdist) * pull;
+                fruits[i].vy += (mdy / mdist) * pull;
+                fruits[j].vx -= (mdx / mdist) * pull;
+                fruits[j].vy -= (mdy / mdist) * pull;
+            }
             if (checkCollision(fruits[i], fruits[j])) {
                 if (fruits[i].type === fruits[j].type && fruits[i].type < FRUIT_TYPES.length - 1) {
                     // 合成
