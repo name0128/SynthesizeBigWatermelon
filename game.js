@@ -5,18 +5,27 @@
 // 依 MIT 协议保留本版权声明，可自由修改与商用
 // ============================================================
 
-// 游戏配置（emoji 合成链：两个相同的 → 合成右边高一级）
+// ============================================================
+// 汉字合成 · 幼小衔接识字版
+// 基于 worldligang/SynthesizeBigWatermelon (MIT License) 修改
+// 原项目：https://github.com/worldligang/SynthesizeBigWatermelon
+// 依 MIT 协议保留本版权声明，可自由修改与商用
+// 玩法：两个相同的字合成下一个字；等级越低字越大(堆积压力)，
+//       合成后字越小(腾出空间) —— 把大字"变小心"的过程就是识字过程
+// ============================================================
+
+// 游戏配置（识字合成链：山→水→火→木→土→日→月→口→田→人，一年级上册高频独体字）
 const FRUIT_TYPES = [
-    { radius: 15, emoji: '🍒', name: '樱桃',   score: 1 },
-    { radius: 20, emoji: '🍇', name: '葡萄',   score: 3 },
-    { radius: 26, emoji: '🍋', name: '柠檬',   score: 6 },
-    { radius: 32, emoji: '🍊', name: '橙子',   score: 10 },
-    { radius: 38, emoji: '🍑', name: '桃子',   score: 15 },
-    { radius: 44, emoji: '🍍', name: '菠萝',   score: 21 },
-    { radius: 50, emoji: '🥝', name: '猕猴桃', score: 28 },
-    { radius: 56, emoji: '🍈', name: '甜瓜',   score: 36 },
-    { radius: 62, emoji: '🍎', name: '苹果王', score: 45 },
-    { radius: 68, emoji: '🍉', name: '西瓜',   score: 55 }
+    { radius: 56, char: '山', name: '山', score: 1 },
+    { radius: 51, char: '水', name: '水', score: 3 },
+    { radius: 46, char: '火', name: '火', score: 6 },
+    { radius: 42, char: '木', name: '木', score: 10 },
+    { radius: 38, char: '土', name: '土', score: 15 },
+    { radius: 34, char: '日', name: '日', score: 21 },
+    { radius: 30, char: '月', name: '月', score: 28 },
+    { radius: 26, char: '口', name: '口', score: 36 },
+    { radius: 22, char: '田', name: '田', score: 45 },
+    { radius: 18, char: '人', name: '人', score: 55 }
 ];
 
 const GRAVITY = 0.5;
@@ -76,16 +85,22 @@ function generateNextFruit() {
     updateNextFruitPreview();
 }
 
-// 更新下一个水果预览（emoji 版）
+// 更新下一个水果预览（识字卡版）
 function updateNextFruitPreview() {
     const preview = document.getElementById('nextFruit');
     const fruit = FRUIT_TYPES[nextFruitType];
     preview.innerHTML = '';
 
     const fruitDiv = document.createElement('div');
-    fruitDiv.style.fontSize = (fruit.radius * 1.3) + 'px';
-    fruitDiv.style.lineHeight = '1';
-    fruitDiv.textContent = fruit.emoji;
+    fruitDiv.style.width = (fruit.radius * 2) + 'px';
+    fruitDiv.style.height = (fruit.radius * 2) + 'px';
+    fruitDiv.style.background = 'rgba(255,255,255,0.92)';
+    fruitDiv.style.borderRadius = '50%';
+    fruitDiv.style.border = '2px solid rgba(0,0,0,0.15)';
+    fruitDiv.style.fontSize = (fruit.radius * 1.4) + 'px';
+    fruitDiv.style.lineHeight = (fruit.radius * 2) + 'px';
+    fruitDiv.style.textAlign = 'center';
+    fruitDiv.textContent = fruit.char;
     preview.appendChild(fruitDiv);
 }
 
@@ -93,7 +108,7 @@ function updateNextFruitPreview() {
 function createCurrentFruit() {
     currentFruit = {
         x: dropX,
-        y: 50,
+        y: Math.max(50, FRUIT_TYPES[nextFruitType].radius + 10),   // 大字起点下移, 避免露出画布顶部
         radius: FRUIT_TYPES[nextFruitType].radius,
         type: nextFruitType,
         vx: 0,
@@ -493,12 +508,23 @@ function draw() {
     }
 }
 
-// 绘制水果（emoji 版）
+// 绘制水果（识字卡版：圆形白底 + 粗体汉字）
 function drawFruit(fruit) {
-    ctx.font = (fruit.radius * 1.8) + 'px serif';
+    // 识字卡圆底
+    ctx.beginPath();
+    ctx.arc(fruit.x, fruit.y, fruit.radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 汉字（字号随半径变化：低级大字醒目，高级小字精巧）
+    ctx.font = 'bold ' + (fruit.radius * 1.4) + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(FRUIT_TYPES[fruit.type].emoji, fruit.x, fruit.y + fruit.radius * 0.08);
+    ctx.fillStyle = '#333';
+    ctx.fillText(FRUIT_TYPES[fruit.type].char, fruit.x, fruit.y + fruit.radius * 0.06);
 }
 
 // 启动游戏
