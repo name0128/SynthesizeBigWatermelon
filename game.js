@@ -15,22 +15,24 @@
 // ============================================================
 
 // 游戏配置（识字合成链：山→水→火→木→土→日→月→口→田→人，一年级上册高频独体字）
+// bg=卡片底色(亮色糖果系, 等级色编码), text=字色(浅底配深字保证可读)
 const FRUIT_TYPES = [
-    { radius: 56, char: '山', name: '山', score: 1 },
-    { radius: 51, char: '水', name: '水', score: 3 },
-    { radius: 46, char: '火', name: '火', score: 6 },
-    { radius: 42, char: '木', name: '木', score: 10 },
-    { radius: 38, char: '土', name: '土', score: 15 },
-    { radius: 34, char: '日', name: '日', score: 21 },
-    { radius: 30, char: '月', name: '月', score: 28 },
-    { radius: 26, char: '口', name: '口', score: 36 },
-    { radius: 22, char: '田', name: '田', score: 45 },
-    { radius: 18, char: '人', name: '人', score: 55 }
+    { radius: 56, char: '山', name: '山', score: 1,  bg: '#FF8A65', text: '#FFFFFF' },
+    { radius: 51, char: '水', name: '水', score: 3,  bg: '#4FC3F7', text: '#FFFFFF' },
+    { radius: 46, char: '火', name: '火', score: 6,  bg: '#FF6B6B', text: '#FFFFFF' },
+    { radius: 42, char: '木', name: '木', score: 10, bg: '#81C784', text: '#FFFFFF' },
+    { radius: 38, char: '土', name: '土', score: 15, bg: '#FFB74D', text: '#7A4A00' },
+    { radius: 34, char: '日', name: '日', score: 21, bg: '#FFD54F', text: '#7A5C00' },
+    { radius: 30, char: '月', name: '月', score: 28, bg: '#B39DDB', text: '#FFFFFF' },
+    { radius: 26, char: '口', name: '口', score: 36, bg: '#F48FB1', text: '#FFFFFF' },
+    { radius: 22, char: '田', name: '田', score: 45, bg: '#4DB6AC', text: '#FFFFFF' },
+    { radius: 18, char: '人', name: '人', score: 55, bg: '#7986CB', text: '#FFFFFF' }
 ];
 
 const GRAVITY = 0.5;
 const BOUNCE = 0.15;   // 弹性调低(原0.3): 堆叠更稳、抖动更小
 const FRICTION = 0.99;
+const WALL_PAD = 6;    // 左右墙内边距: 汉字卡片不贴画布边缘, 避免视觉卡切
 
 // 游戏状态
 let canvas, ctx;
@@ -94,12 +96,13 @@ function updateNextFruitPreview() {
     const fruitDiv = document.createElement('div');
     fruitDiv.style.width = (fruit.radius * 2) + 'px';
     fruitDiv.style.height = (fruit.radius * 2) + 'px';
-    fruitDiv.style.background = 'rgba(255,255,255,0.92)';
+    fruitDiv.style.background = fruit.bg;
     fruitDiv.style.borderRadius = '50%';
-    fruitDiv.style.border = '2px solid rgba(0,0,0,0.15)';
+    fruitDiv.style.border = '3px solid rgba(255,255,255,0.9)';
     fruitDiv.style.fontSize = (fruit.radius * 1.4) + 'px';
     fruitDiv.style.lineHeight = (fruit.radius * 2) + 'px';
     fruitDiv.style.textAlign = 'center';
+    fruitDiv.style.color = fruit.text;
     fruitDiv.textContent = fruit.char;
     preview.appendChild(fruitDiv);
 }
@@ -144,11 +147,13 @@ function handleTouchStart(e) {
     dropX = touch.clientX - rect.left;
 
     // 边界限制
-    if (dropX < FRUIT_TYPES[nextFruitType].radius) {
-        dropX = FRUIT_TYPES[nextFruitType].radius;
+    const minDropX = WALL_PAD + FRUIT_TYPES[nextFruitType].radius;
+    const maxDropX = canvasWidth - WALL_PAD - FRUIT_TYPES[nextFruitType].radius;
+    if (dropX < minDropX) {
+        dropX = minDropX;
     }
-    if (dropX > canvasWidth - FRUIT_TYPES[nextFruitType].radius) {
-        dropX = canvasWidth - FRUIT_TYPES[nextFruitType].radius;
+    if (dropX > maxDropX) {
+        dropX = maxDropX;
     }
 
     if (currentFruit && !currentFruit.isDropping) {
@@ -163,11 +168,13 @@ function handleTouchMove(e) {
     dropX = touch.clientX - rect.left;
 
     // 边界限制
-    if (dropX < FRUIT_TYPES[nextFruitType].radius) {
-        dropX = FRUIT_TYPES[nextFruitType].radius;
+    const minDropX = WALL_PAD + FRUIT_TYPES[nextFruitType].radius;
+    const maxDropX = canvasWidth - WALL_PAD - FRUIT_TYPES[nextFruitType].radius;
+    if (dropX < minDropX) {
+        dropX = minDropX;
     }
-    if (dropX > canvasWidth - FRUIT_TYPES[nextFruitType].radius) {
-        dropX = canvasWidth - FRUIT_TYPES[nextFruitType].radius;
+    if (dropX > maxDropX) {
+        dropX = maxDropX;
     }
 
     if (currentFruit && !currentFruit.isDropping) {
@@ -189,11 +196,13 @@ function handleMouseMove(e) {
     dropX = e.clientX - rect.left;
 
     // 边界限制
-    if (dropX < FRUIT_TYPES[nextFruitType].radius) {
-        dropX = FRUIT_TYPES[nextFruitType].radius;
+    const minDropX = WALL_PAD + FRUIT_TYPES[nextFruitType].radius;
+    const maxDropX = canvasWidth - WALL_PAD - FRUIT_TYPES[nextFruitType].radius;
+    if (dropX < minDropX) {
+        dropX = minDropX;
     }
-    if (dropX > canvasWidth - FRUIT_TYPES[nextFruitType].radius) {
-        dropX = canvasWidth - FRUIT_TYPES[nextFruitType].radius;
+    if (dropX > maxDropX) {
+        dropX = maxDropX;
     }
 
     if (currentFruit && !currentFruit.isDropping) {
@@ -270,13 +279,13 @@ function update() {
             }
         }
 
-        // 左右边界
-        if (currentFruit.x - currentFruit.radius < 0) {
-            currentFruit.x = currentFruit.radius;
+        // 左右边界（内缩 WALL_PAD, 卡片不贴边）
+        if (currentFruit.x - currentFruit.radius < WALL_PAD) {
+            currentFruit.x = WALL_PAD + currentFruit.radius;
             currentFruit.vx *= -BOUNCE;
         }
-        if (currentFruit.x + currentFruit.radius > canvasWidth) {
-            currentFruit.x = canvasWidth - currentFruit.radius;
+        if (currentFruit.x + currentFruit.radius > canvasWidth - WALL_PAD) {
+            currentFruit.x = canvasWidth - WALL_PAD - currentFruit.radius;
             currentFruit.vx *= -BOUNCE;
         }
 
@@ -325,13 +334,13 @@ function update() {
             fruit.vy *= -BOUNCE;
             if (Math.abs(fruit.vy) < 0.8) fruit.vy = 0;   // 微弱反弹直接静止, 消除落底抖动
         }
-        if (fruit.x - fruit.radius < 0) {
-            fruit.x = fruit.radius;
+        if (fruit.x - fruit.radius < WALL_PAD) {
+            fruit.x = WALL_PAD + fruit.radius;
             fruit.vx *= -BOUNCE;
             if (Math.abs(fruit.vx) < 0.8) fruit.vx = 0;
         }
-        if (fruit.x + fruit.radius > canvasWidth) {
-            fruit.x = canvasWidth - fruit.radius;
+        if (fruit.x + fruit.radius > canvasWidth - WALL_PAD) {
+            fruit.x = canvasWidth - WALL_PAD - fruit.radius;
             fruit.vx *= -BOUNCE;
             if (Math.abs(fruit.vx) < 0.8) fruit.vx = 0;
         }
@@ -508,23 +517,27 @@ function draw() {
     }
 }
 
-// 绘制水果（识字卡版：圆形白底 + 粗体汉字）
+// 绘制水果（彩虹识字卡版：彩色圆底 + 白描边 + 汉字）
 function drawFruit(fruit) {
-    // 识字卡圆底
+    const conf = FRUIT_TYPES[fruit.type];
+
+    // 彩色圆底
     ctx.beginPath();
     ctx.arc(fruit.x, fruit.y, fruit.radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillStyle = conf.bg;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-    ctx.lineWidth = 2;
+
+    // 白色描边(贴纸风)
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
     ctx.stroke();
 
     // 汉字（字号随半径变化：低级大字醒目，高级小字精巧）
     ctx.font = 'bold ' + (fruit.radius * 1.4) + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#333';
-    ctx.fillText(FRUIT_TYPES[fruit.type].char, fruit.x, fruit.y + fruit.radius * 0.06);
+    ctx.fillStyle = conf.text;
+    ctx.fillText(conf.char, fruit.x, fruit.y + fruit.radius * 0.06);
 }
 
 // 启动游戏
