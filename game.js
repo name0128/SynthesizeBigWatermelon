@@ -46,9 +46,36 @@ let overLineFrames = 0;   // 水果持续越过危险线的帧数（持续 1.5 �
 let dropX = 0;
 let canvasWidth, canvasHeight;
 
-// 合成鼓励（合出最高等级汉字时触发）
-let cheer = null;   // { text, frames }
+// 合成鼓励（合出最高等级汉字时触发：全屏烟花 + 大字鼓励语）
+let cheer = null;   // { text, frames, particles }
 const CHEER_TEXTS = ['真棒！', '太厉害了！', '好样的！', '你真棒！', '继续加油！'];
+
+// 发射全屏庆祝: 4 朵烟花粒子 + 开场闪光
+function launchCheer() {
+    const colors = ['#FF5252', '#FFD54F', '#4FC3F7', '#B39DDB', '#69F0AE', '#FF8A65', '#F48FB1'];
+    const particles = [];
+    for (let b = 0; b < 4; b++) {
+        const bx = canvasWidth * (0.15 + Math.random() * 0.7);
+        const by = canvasHeight * (0.12 + Math.random() * 0.3);
+        for (let i = 0; i < 36; i++) {
+            const angle = (Math.PI * 2 * i) / 36 + Math.random() * 0.3;
+            const speed = 2 + Math.random() * 2.5;
+            particles.push({
+                x: bx, y: by,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                life: 60 + Math.random() * 30,
+                age: 0
+            });
+        }
+    }
+    cheer = {
+        text: CHEER_TEXTS[Math.floor(Math.random() * CHEER_TEXTS.length)],
+        frames: 120,
+        particles: particles
+    };
+}
 
 // 初始化游戏
 function init() {
@@ -461,9 +488,9 @@ function mergeFruits(a, b) {
     score += FRUIT_TYPES[newType].score;
     document.getElementById('score').textContent = score;
 
-    // 合出最高等级汉字 → 触发鼓励语
+    // 合出最高等级汉字 → 全屏庆祝（全屏烟花 + 大字鼓励语）
     if (newType === FRUIT_TYPES.length - 1) {
-        cheer = { text: CHEER_TEXTS[Math.floor(Math.random() * CHEER_TEXTS.length)], frames: 100 };
+        launchCheer();
     }
 
     // 更新最高分
@@ -508,21 +535,42 @@ function draw() {
         drawFruit(currentFruit);
     }
 
-    // 合成鼓励动效（合出最高等级汉字时出现，弹出放大后渐隐）
+    // 全屏庆祝动效（合出最高等级汉字：全屏烟花粒子 + 中央大鼓励语）
     if (cheer && cheer.frames > 0) {
-        const t = cheer.frames / 100;                 // 1 → 0
-        const scale = 1 + (1 - t) * 0.4;              // 逐渐放大
+        const t = cheer.frames / 120;                 // 1 → 0
+
+        // 全屏烟花粒子（更新 + 绘制：微重力 + 空气阻力 + 渐隐）
+        if (cheer.particles) {
+            for (let p of cheer.particles) {
+                if (p.life <= 0) continue;
+                p.life--;
+                p.vy += 0.04;                         // 微重力下坠
+                p.vx *= 0.985;                        // 空气阻力
+                p.x += p.vx;
+                p.y += p.vy;
+                ctx.globalAlpha = Math.max(0, Math.min(1, t * 1.5));
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // 全屏中央大鼓励语（弹出放大 + 渐隐）
+        const scale = 1 + (1 - t) * 0.5;
         ctx.save();
-        ctx.globalAlpha = Math.min(1, t * 2.5);       // 尾段渐隐
-        ctx.font = 'bold ' + Math.round(44 * scale) + 'px sans-serif';
+        ctx.globalAlpha = Math.min(1, t * 3);
+        ctx.font = 'bold ' + Math.round(52 * scale) + 'px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 10;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.strokeText(cheer.text, canvasWidth / 2, canvasHeight * 0.3);
         ctx.fillStyle = '#FF7043';
         ctx.fillText(cheer.text, canvasWidth / 2, canvasHeight * 0.3);
         ctx.restore();
+
         cheer.frames--;
     }
 
