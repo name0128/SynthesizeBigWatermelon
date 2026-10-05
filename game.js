@@ -46,6 +46,10 @@ let overLineFrames = 0;   // 水果持续越过危险线的帧数（持续 1.5 �
 let dropX = 0;
 let canvasWidth, canvasHeight;
 
+// 合成鼓励（合出最高等级汉字时触发）
+let cheer = null;   // { text, frames }
+const CHEER_TEXTS = ['真棒！', '太厉害了！', '好样的！', '你真棒！', '继续加油！'];
+
 // 初始化游戏
 function init() {
     canvas = document.getElementById('gameCanvas');
@@ -94,13 +98,14 @@ function updateNextFruitPreview() {
     preview.innerHTML = '';
 
     const fruitDiv = document.createElement('div');
-    fruitDiv.style.width = (fruit.radius * 2) + 'px';
-    fruitDiv.style.height = (fruit.radius * 2) + 'px';
+    const PREVIEW_SIZE = 56;   // 预览卡固定直径, 不随字等级变化
+    fruitDiv.style.width = PREVIEW_SIZE + 'px';
+    fruitDiv.style.height = PREVIEW_SIZE + 'px';
     fruitDiv.style.background = fruit.bg;
     fruitDiv.style.borderRadius = '50%';
     fruitDiv.style.border = '3px solid rgba(255,255,255,0.9)';
-    fruitDiv.style.fontSize = (fruit.radius * 1.4) + 'px';
-    fruitDiv.style.lineHeight = (fruit.radius * 2) + 'px';
+    fruitDiv.style.fontSize = '36px';
+    fruitDiv.style.lineHeight = PREVIEW_SIZE + 'px';
     fruitDiv.style.textAlign = 'center';
     fruitDiv.style.color = fruit.text;
     fruitDiv.textContent = fruit.char;
@@ -244,6 +249,7 @@ function restartGame() {
     score = 0;
     gameOver = false;
     overLineFrames = 0;
+    cheer = null;
     document.getElementById('score').textContent = score;
     generateNextFruit();
     createCurrentFruit();
@@ -455,6 +461,11 @@ function mergeFruits(a, b) {
     score += FRUIT_TYPES[newType].score;
     document.getElementById('score').textContent = score;
 
+    // 合出最高等级汉字 → 触发鼓励语
+    if (newType === FRUIT_TYPES.length - 1) {
+        cheer = { text: CHEER_TEXTS[Math.floor(Math.random() * CHEER_TEXTS.length)], frames: 100 };
+    }
+
     // 更新最高分
     if (score > highScore) {
         highScore = score;
@@ -495,6 +506,24 @@ function draw() {
     // 绘制当前水果
     if (currentFruit) {
         drawFruit(currentFruit);
+    }
+
+    // 合成鼓励动效（合出最高等级汉字时出现，弹出放大后渐隐）
+    if (cheer && cheer.frames > 0) {
+        const t = cheer.frames / 100;                 // 1 → 0
+        const scale = 1 + (1 - t) * 0.4;              // 逐渐放大
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, t * 2.5);       // 尾段渐隐
+        ctx.font = 'bold ' + Math.round(44 * scale) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeText(cheer.text, canvasWidth / 2, canvasHeight * 0.3);
+        ctx.fillStyle = '#FF7043';
+        ctx.fillText(cheer.text, canvasWidth / 2, canvasHeight * 0.3);
+        ctx.restore();
+        cheer.frames--;
     }
 
     // 绘制游戏结束面板（画布内全屏提示，不依赖手机浏览器 alert）
