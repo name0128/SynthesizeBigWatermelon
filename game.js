@@ -7,20 +7,20 @@
 
 // 游戏配置（emoji 合成链：两个相同的 → 合成右边高一级）
 const FRUIT_TYPES = [
-    { radius: 20,  emoji: '🍒', name: '樱桃',   score: 1 },
-    { radius: 30,  emoji: '🍇', name: '葡萄',   score: 3 },
-    { radius: 40,  emoji: '🍋', name: '柠檬',   score: 6 },
-    { radius: 50,  emoji: '🍊', name: '橙子',   score: 10 },
-    { radius: 60,  emoji: '🍑', name: '桃子',   score: 15 },
-    { radius: 70,  emoji: '🍍', name: '菠萝',   score: 21 },
-    { radius: 80,  emoji: '🥝', name: '猕猴桃', score: 28 },
-    { radius: 90,  emoji: '🍈', name: '甜瓜',   score: 36 },
-    { radius: 100, emoji: '🍎', name: '苹果王', score: 45 },
-    { radius: 110, emoji: '🍉', name: '西瓜',   score: 55 }
+    { radius: 15, emoji: '🍒', name: '樱桃',   score: 1 },
+    { radius: 20, emoji: '🍇', name: '葡萄',   score: 3 },
+    { radius: 26, emoji: '🍋', name: '柠檬',   score: 6 },
+    { radius: 32, emoji: '🍊', name: '橙子',   score: 10 },
+    { radius: 38, emoji: '🍑', name: '桃子',   score: 15 },
+    { radius: 44, emoji: '🍍', name: '菠萝',   score: 21 },
+    { radius: 50, emoji: '🥝', name: '猕猴桃', score: 28 },
+    { radius: 56, emoji: '🍈', name: '甜瓜',   score: 36 },
+    { radius: 62, emoji: '🍎', name: '苹果王', score: 45 },
+    { radius: 68, emoji: '🍉', name: '西瓜',   score: 55 }
 ];
 
 const GRAVITY = 0.5;
-const BOUNCE = 0.3;
+const BOUNCE = 0.15;   // 弹性调低(原0.3): 堆叠更稳、抖动更小
 const FRICTION = 0.99;
 
 // 游戏状态
@@ -162,7 +162,8 @@ function handleTouchMove(e) {
 
 function handleTouchEnd(e) {
     e.preventDefault();
-    if (currentFruit && !currentFruit.isDropping && !gameOver) {
+    if (gameOver) { restartGame(); return; }   // 结束状态: 点屏幕任意位置重新开始
+    if (currentFruit && !currentFruit.isDropping) {
         currentFruit.isDropping = true;
         currentFruit.vy = 2;
     }
@@ -186,7 +187,8 @@ function handleMouseMove(e) {
 }
 
 function handleClick(e) {
-    if (currentFruit && !currentFruit.isDropping && !gameOver) {
+    if (gameOver) { restartGame(); return; }   // 结束状态: 点击重新开始
+    if (currentFruit && !currentFruit.isDropping) {
         currentFruit.isDropping = true;
         currentFruit.vy = 2;
     }
@@ -236,6 +238,7 @@ function update() {
 
     // 更新掉落的水果
     if (currentFruit && currentFruit.isDropping) {
+        currentFruit.dropFrames = (currentFruit.dropFrames || 0) + 1;
         currentFruit.vy += GRAVITY;
         currentFruit.y += currentFruit.vy;
 
@@ -280,6 +283,14 @@ function update() {
                 }
             }
         }
+
+        // 超时保护：掉落超过 3 秒仍未结算（如被抖动的水果堆卡住），强制结算并生成新水果
+        if (currentFruit && currentFruit.dropFrames > 180) {
+            currentFruit.isDropping = false;
+            fruits.push(currentFruit);
+            currentFruit = null;
+            createCurrentFruit();
+        }
     }
 
     // 更新场景中的水果
@@ -297,15 +308,21 @@ function update() {
         if (fruit.y + fruit.radius > canvasHeight) {
             fruit.y = canvasHeight - fruit.radius;
             fruit.vy *= -BOUNCE;
+            if (Math.abs(fruit.vy) < 0.8) fruit.vy = 0;   // 微弱反弹直接静止, 消除落底抖动
         }
         if (fruit.x - fruit.radius < 0) {
             fruit.x = fruit.radius;
             fruit.vx *= -BOUNCE;
+            if (Math.abs(fruit.vx) < 0.8) fruit.vx = 0;
         }
         if (fruit.x + fruit.radius > canvasWidth) {
             fruit.x = canvasWidth - fruit.radius;
             fruit.vx *= -BOUNCE;
+            if (Math.abs(fruit.vx) < 0.8) fruit.vx = 0;
         }
+
+        // 限制最大下落速度, 防止堆叠中弹跳过猛
+        if (fruit.vy > 12) fruit.vy = 12;
     }
 
     // 水果之间的碰撞
@@ -354,8 +371,7 @@ function update() {
     if (danger) {
         overLineFrames++;
         if (overLineFrames > 90) {
-            gameOver = true;
-            alert('游戏结束！最终得分: ' + score);
+            gameOver = true;   // 结束画面由 draw() 全屏面板展示(手机端 alert 可能被拦截或阻塞)
         }
     } else {
         overLineFrames = 0;
@@ -382,8 +398,8 @@ function resolveCollision(a, b) {
     const ny = dy / distance;
 
     const overlap = a.radius + b.radius - distance;
-    const separationX = nx * overlap / 2;
-    const separationY = ny * overlap / 2;
+    const separationX = nx * overlap * 0.35;   // 分离量软化(原为1/2): 位置调整渐进, 堆叠更丝滑
+    const separationY = ny * overlap * 0.35;
 
     a.x -= separationX;
     a.y -= separationY;
@@ -457,18 +473,23 @@ function draw() {
         drawFruit(currentFruit);
     }
 
-    // 绘制游戏结束文字
+    // 绘制游戏结束面板（画布内全屏提示，不依赖手机浏览器 alert）
     if (gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 30px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('游戏结束', canvasWidth / 2, canvasHeight / 2 - 20);
+        ctx.textBaseline = 'alphabetic';   // 重置文字基线(水果绘制用的是 middle, 需还原)
 
-        ctx.font = '20px Arial';
-        ctx.fillText('点击重新开始按钮', canvasWidth / 2, canvasHeight / 2 + 20);
+        ctx.font = 'bold 30px Arial';
+        ctx.fillText('游戏结束', canvasWidth / 2, canvasHeight / 2 - 40);
+
+        ctx.font = '22px Arial';
+        ctx.fillText('本局得分: ' + score, canvasWidth / 2, canvasHeight / 2);
+
+        ctx.font = '18px Arial';
+        ctx.fillText('点击屏幕任意位置重新开始', canvasWidth / 2, canvasHeight / 2 + 36);
     }
 }
 
